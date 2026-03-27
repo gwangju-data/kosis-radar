@@ -3,30 +3,30 @@ import * as XLSX from "xlsx";
 
 // 지표명만 정의 — tblId는 스캔 시 자동 탐색
 const INDICATORS = [
-  { id:1,  cat:"사회·복지",  name:"청년실업률",       searchNm:"청년 실업률 시도",       prdSe:"Q", unit:"%",     threshold:1  },
-  { id:2,  cat:"사회·복지",  name:"기초생활수급자",    searchNm:"기초생활수급자 시도",     prdSe:"Y", unit:"명",    threshold:5  },
-  { id:3,  cat:"사회·복지",  name:"노인 독거가구",     searchNm:"독거노인 가구 시도",      prdSe:"Y", unit:"가구",  threshold:5  },
-  { id:4,  cat:"사회·복지",  name:"장애인 등록",       searchNm:"장애인 등록 시도",        prdSe:"Y", unit:"명",    threshold:3  },
-  { id:5,  cat:"사회·복지",  name:"출생아 수",         searchNm:"출생아수 시도",           prdSe:"M", unit:"명",    threshold:5  },
-  { id:6,  cat:"사회·복지",  name:"합계출산율",        searchNm:"합계출산율 시도",         prdSe:"Y", unit:"명",    threshold:3  },
-  { id:7,  cat:"사회·복지",  name:"사망자 수",         searchNm:"사망자수 시도",           prdSe:"Y", unit:"명",    threshold:3  },
-  { id:8,  cat:"사회·복지",  name:"어린이집 수",       searchNm:"어린이집 시도",           prdSe:"Y", unit:"개소",  threshold:5  },
-  { id:9,  cat:"사회·복지",  name:"아동학대 신고",     searchNm:"아동학대 신고 시도",      prdSe:"Y", unit:"건",    threshold:5  },
-  { id:10, cat:"사회·복지",  name:"한부모가족",        searchNm:"한부모가족 시도",         prdSe:"Y", unit:"가구",  threshold:5  },
-  { id:11, cat:"경제·고용",  name:"고용률",            searchNm:"행정구역 시도별 경제활동인구", prdSe:"M", unit:"%", threshold:1  },
-  { id:12, cat:"경제·고용",  name:"실업률",            searchNm:"행정구역 시도별 경제활동인구", prdSe:"M", unit:"%", threshold:1  },
-  { id:13, cat:"경제·고용",  name:"소비자물가지수",    searchNm:"소비자물가지수 시도",     prdSe:"M", unit:"지수",  threshold:2  },
-  { id:14, cat:"경제·고용",  name:"제조업 취업자",     searchNm:"제조업 취업자 시도",      prdSe:"M", unit:"천명",  threshold:3  },
-  { id:15, cat:"경제·고용",  name:"평균 임금",         searchNm:"시도별 임금 근로자",      prdSe:"M", unit:"원",    threshold:3  },
-  { id:16, cat:"경제·고용",  name:"농가소득",          searchNm:"농가소득 시도",           prdSe:"Y", unit:"만원",  threshold:5  },
-  { id:17, cat:"경제·고용",  name:"외국인 근로자",     searchNm:"외국인 근로자 시도",      prdSe:"M", unit:"명",    threshold:5  },
-  { id:18, cat:"부동산·인구",name:"아파트 매매가",     searchNm:"아파트 매매가격지수 시도",prdSe:"M", unit:"지수",  threshold:2  },
-  { id:19, cat:"부동산·인구",name:"전세가격지수",      searchNm:"아파트 전세가격지수 시도",prdSe:"M", unit:"지수",  threshold:2  },
-  { id:20, cat:"부동산·인구",name:"인구 이동",         searchNm:"인구이동 시도",           prdSe:"M", unit:"명",    threshold:5  },
-  { id:21, cat:"부동산·인구",name:"미분양 주택",       searchNm:"미분양주택 시도",         prdSe:"M", unit:"호",    threshold:10 },
-  { id:22, cat:"부동산·인구",name:"주민등록인구",      searchNm:"주민등록인구 시도",       prdSe:"M", unit:"명",    threshold:3  },
-  { id:23, cat:"교육·환경",  name:"학생 수",           searchNm:"학생수 시도",             prdSe:"Y", unit:"명",    threshold:3  },
-  { id:24, cat:"교육·환경",  name:"교통사고",          searchNm:"교통사고 시도",           prdSe:"Y", unit:"건",    threshold:5  },
+  // ✅ URL 직접 확인된 것
+  { id:1,  cat:"사회·복지",  name:"청년실업률",    orgId:"101", tblId:"DT_1YL20531E", prdSe:"Q", unit:"%",    threshold:1  },
+  { id:2,  cat:"경제·고용",  name:"고용률·실업률", orgId:"101", tblId:"DT_1DA7004S",  prdSe:"M", unit:"%",    threshold:1  },
+  { id:3,  cat:"사회·복지",  name:"출생아 수",      orgId:"101", tblId:"INH_1B81A01",  prdSe:"M", unit:"명",   threshold:5  },
+  { id:4,  cat:"경제·고용",  name:"소비자물가지수", orgId:"101", tblId:"INH_1J22003",  prdSe:"M", unit:"지수", threshold:2  },
+  { id:5,  cat:"부동산·인구",name:"아파트 매매가",  orgId:"101", tblId:"DT_1YL20162E", prdSe:"M", unit:"지수", threshold:2  },
+
+  // ✅ 기존 스캔에서 실제 작동 확인된 것
+  { id:6,  cat:"사회·복지",  name:"합계출산율",     orgId:"101", tblId:"DT_1B8000G",   prdSe:"Y", unit:"명",   threshold:3  },
+  { id:7,  cat:"부동산·인구",name:"주민등록인구",   orgId:"101", tblId:"DT_1B040A3",   prdSe:"M", unit:"명",   threshold:3  },
+  { id:8,  cat:"부동산·인구",name:"미분양 주택",    orgId:"116", tblId:"DT_MLTM_2086", prdSe:"M", unit:"호",   threshold:10 },
+  { id:9,  cat:"부동산·인구",name:"인구 이동",      orgId:"101", tblId:"DT_1B26001",   prdSe:"M", unit:"명",   threshold:5  },
+
+  // 🔍 KOSIS 검색으로 자동 탐색할 것
+  { id:10, cat:"사회·복지",  name:"기초생활수급자", orgId:null, tblId:null, searchNm:"기초생활보장 수급자 시도", prdSe:"Y", unit:"명",   threshold:5  },
+  { id:11, cat:"사회·복지",  name:"사망자 수",      orgId:null, tblId:null, searchNm:"사망자수 시도별",         prdSe:"Y", unit:"명",   threshold:3  },
+  { id:12, cat:"사회·복지",  name:"장애인 등록",    orgId:null, tblId:null, searchNm:"장애인 등록 현황 시도",   prdSe:"Y", unit:"명",   threshold:3  },
+  { id:13, cat:"사회·복지",  name:"어린이집 수",    orgId:null, tblId:null, searchNm:"어린이집 시도별 현황",    prdSe:"Y", unit:"개소", threshold:5  },
+  { id:14, cat:"경제·고용",  name:"농가소득",       orgId:null, tblId:null, searchNm:"농가소득 시도별",         prdSe:"Y", unit:"만원", threshold:5  },
+  { id:15, cat:"경제·고용",  name:"평균 임금",      orgId:null, tblId:null, searchNm:"시도별 월평균 임금",      prdSe:"M", unit:"원",   threshold:3  },
+  { id:16, cat:"경제·고용",  name:"외국인 근로자",  orgId:null, tblId:null, searchNm:"외국인 근로자 시도별",    prdSe:"M", unit:"명",   threshold:5  },
+  { id:17, cat:"부동산·인구",name:"전세가격지수",   orgId:null, tblId:null, searchNm:"아파트 전세가격지수 시도",prdSe:"M", unit:"지수", threshold:2  },
+  { id:18, cat:"교육·환경",  name:"학생 수",        orgId:null, tblId:null, searchNm:"학생수 시도별",           prdSe:"Y", unit:"명",   threshold:3  },
+  { id:19, cat:"교육·환경",  name:"교통사고",       orgId:null, tblId:null, searchNm:"교통사고 발생 시도별",    prdSe:"Y", unit:"건",   threshold:5  },
 ];
 
 const CAT_COLOR = { "사회·복지":"#60a5fa","경제·고용":"#fbbf24","부동산·인구":"#f472b6","교육·환경":"#34d399" };
