@@ -1,195 +1,211 @@
 import { useState, useCallback } from "react";
 import * as XLSX from "xlsx";
 
-// 지표명만 정의 — tblId는 스캔 시 자동 탐색
 const INDICATORS = [
-  // ✅ URL 직접 확인된 것
-  { id:1,  cat:"사회·복지",  name:"청년실업률",    orgId:"101", tblId:"DT_1YL20531E", prdSe:"Q", unit:"%",    threshold:1  },
-  { id:2,  cat:"경제·고용",  name:"고용률·실업률", orgId:"101", tblId:"DT_1DA7004S",  prdSe:"M", unit:"%",    threshold:1  },
-  { id:3,  cat:"사회·복지",  name:"출생아 수",      orgId:"101", tblId:"INH_1B81A01",  prdSe:"M", unit:"명",   threshold:5  },
-  { id:4,  cat:"경제·고용",  name:"소비자물가지수", orgId:"101", tblId:"INH_1J22003",  prdSe:"M", unit:"지수", threshold:2  },
-  { id:5,  cat:"부동산·인구",name:"아파트 매매가",  orgId:"101", tblId:"DT_1YL20162E", prdSe:"M", unit:"지수", threshold:2  },
+  // ✅ 직접 URL 확인 완료
+  { id:1,  cat:"사회·복지",  name:"청년실업률",    orgId:"101", tblId:"DT_1YL20531E", prdSe:"Q", unit:"%",    threshold:1,  s:"20231",  e:"20244"  },
+  { id:2,  cat:"경제·고용",  name:"경제활동인구",  orgId:"101", tblId:"DT_1DA7004S",  prdSe:"M", unit:"천명", threshold:3,  s:"202401", e:"202602" },
+  { id:3,  cat:"사회·복지",  name:"출생아 수",     orgId:"101", tblId:"INH_1B81A01",  prdSe:"M", unit:"명",   threshold:5,  s:"202301", e:"202412" },
+  { id:4,  cat:"경제·고용",  name:"소비자물가지수",orgId:"101", tblId:"INH_1J22003",  prdSe:"M", unit:"지수", threshold:2,  s:"202401", e:"202602" },
+  { id:5,  cat:"부동산·인구",name:"아파트 매매가", orgId:"101", tblId:"DT_1YL20162E", prdSe:"M", unit:"지수", threshold:2,  s:"202401", e:"202601" },
 
-  // ✅ 기존 스캔에서 실제 작동 확인된 것
-  { id:6,  cat:"사회·복지",  name:"합계출산율",     orgId:"101", tblId:"DT_1B8000G",   prdSe:"Y", unit:"명",   threshold:3  },
-  { id:7,  cat:"부동산·인구",name:"주민등록인구",   orgId:"101", tblId:"DT_1B040A3",   prdSe:"M", unit:"명",   threshold:3  },
-  { id:8,  cat:"부동산·인구",name:"미분양 주택",    orgId:"116", tblId:"DT_MLTM_2086", prdSe:"M", unit:"호",   threshold:10 },
-  { id:9,  cat:"부동산·인구",name:"인구 이동",      orgId:"101", tblId:"DT_1B26001",   prdSe:"M", unit:"명",   threshold:5  },
-
-  // 🔍 KOSIS 검색으로 자동 탐색할 것
-  { id:10, cat:"사회·복지",  name:"기초생활수급자", orgId:null, tblId:null, searchNm:"기초생활보장 수급자 시도", prdSe:"Y", unit:"명",   threshold:5  },
-  { id:11, cat:"사회·복지",  name:"사망자 수",      orgId:null, tblId:null, searchNm:"사망자수 시도별",         prdSe:"Y", unit:"명",   threshold:3  },
-  { id:12, cat:"사회·복지",  name:"장애인 등록",    orgId:null, tblId:null, searchNm:"장애인 등록 현황 시도",   prdSe:"Y", unit:"명",   threshold:3  },
-  { id:13, cat:"사회·복지",  name:"어린이집 수",    orgId:null, tblId:null, searchNm:"어린이집 시도별 현황",    prdSe:"Y", unit:"개소", threshold:5  },
-  { id:14, cat:"경제·고용",  name:"농가소득",       orgId:null, tblId:null, searchNm:"농가소득 시도별",         prdSe:"Y", unit:"만원", threshold:5  },
-  { id:15, cat:"경제·고용",  name:"평균 임금",      orgId:null, tblId:null, searchNm:"시도별 월평균 임금",      prdSe:"M", unit:"원",   threshold:3  },
-  { id:16, cat:"경제·고용",  name:"외국인 근로자",  orgId:null, tblId:null, searchNm:"외국인 근로자 시도별",    prdSe:"M", unit:"명",   threshold:5  },
-  { id:17, cat:"부동산·인구",name:"전세가격지수",   orgId:null, tblId:null, searchNm:"아파트 전세가격지수 시도",prdSe:"M", unit:"지수", threshold:2  },
-  { id:18, cat:"교육·환경",  name:"학생 수",        orgId:null, tblId:null, searchNm:"학생수 시도별",           prdSe:"Y", unit:"명",   threshold:3  },
-  { id:19, cat:"교육·환경",  name:"교통사고",       orgId:null, tblId:null, searchNm:"교통사고 발생 시도별",    prdSe:"Y", unit:"건",   threshold:5  },
+  // ✅ 스캔 실제 작동 확인
+  { id:6,  cat:"사회·복지",  name:"합계출산율",    orgId:"101", tblId:"DT_1B8000G",   prdSe:"Y", unit:"명",   threshold:3,  s:"2020",   e:"2025"   },
+  { id:7,  cat:"부동산·인구",name:"주민등록인구",  orgId:"101", tblId:"DT_1B040A3",   prdSe:"M", unit:"명",   threshold:3,  s:"202401", e:"202602" },
+  { id:8,  cat:"부동산·인구",name:"미분양 주택",   orgId:"116", tblId:"DT_MLTM_2086", prdSe:"M", unit:"호",   threshold:10, s:"202401", e:"202601" },
+  { id:9,  cat:"부동산·인구",name:"인구 이동",     orgId:"101", tblId:"DT_1B26001",   prdSe:"M", unit:"명",   threshold:5,  s:"202401", e:"202602" },
+  { id:10, cat:"사회·복지",  name:"사망자 수",     orgId:"101", tblId:"DT_1B8000E",   prdSe:"Y", unit:"명",   threshold:3,  s:"2020",   e:"2025"   },
 ];
 
-const CAT_COLOR = { "사회·복지":"#60a5fa","경제·고용":"#fbbf24","부동산·인구":"#f472b6","교육·환경":"#34d399" };
+const CAT_COLOR = {
+  "사회·복지":"#60a5fa",
+  "경제·고용":"#fbbf24",
+  "부동산·인구":"#f472b6",
+  "교육·환경":"#34d399"
+};
 const CATS = ["전체", ...Object.keys(CAT_COLOR)];
 
-// ── KOSIS 검색으로 tblId 자동 탐색 ───────────────────────
-async function findTblId(ind) {
+async function fetchKosis(ind) {
   try {
-    const r = await fetch(`/api/kosis?mode=search&searchNm=${encodeURIComponent(ind.searchNm)}`);
+    const url = `/api/kosis?orgId=${ind.orgId}&tblId=${ind.tblId}&prdSe=${ind.prdSe}&startPrdDe=${ind.s}&endPrdDe=${ind.e}`;
+    const r = await fetch(url);
     const data = await r.json();
-    if (!Array.isArray(data) || !data.length) return null;
-    // 시도 지역별 데이터 우선 선택
-    const preferred = data.find(d =>
-      d.VW_CD === "MT_GTITLE01" || d.VW_CD === "MT_GTITLE02"
-    ) || data.find(d =>
-      d.TBL_NM?.includes("시도") || d.TBL_NM?.includes("광역")
-    ) || data[0];
-    return { orgId: preferred.ORG_ID, tblId: preferred.TBL_ID };
-  } catch { return null; }
-}
-
-// ── 데이터 수집 ──────────────────────────────────────────
-async function fetchKosis(ind, orgId, tblId) {
-  const { prdSe } = ind;
-  const [s, e] = prdSe==="M" ? ["202401","202602"] : prdSe==="Y" ? ["2022","2025"] : ["20231","20254"];
-  try {
-    const r = await fetch(`/api/kosis?orgId=${orgId}&tblId=${tblId}&prdSe=${prdSe}&startPrdDe=${s}&endPrdDe=${e}`);
-    const data = await r.json();
-    if (!Array.isArray(data)) return { ok:false, error: data?.errMsg||"API 오류" };
+    if (!Array.isArray(data)) return { ok:false, error: data?.errMsg || "응답 오류" };
     if (data[0]?.ERR_MSG) return { ok:false, error: data[0].ERR_MSG };
+    if (!data.length) return { ok:false, error: "데이터 없음" };
     return { ok:true, data };
-  } catch { return { ok:false, error:"연결 실패" }; }
+  } catch(e) {
+    return { ok:false, error: "연결 실패" };
+  }
 }
 
 function parseRegional(rows) {
   const out={}, seen={};
   rows.forEach(row => {
-    let region=null;
+    let region = null;
     for (const v of Object.values(row)) {
-      const s=String(v);
-      if (s.includes("광주")) { region="광주"; break; }
-      if (s.includes("전남")||s.includes("전라남")) { region="전남"; break; }
+      const s = String(v);
+      if (s === "광주광역시" || s === "광주") { region = "광주"; break; }
+      if (s === "전라남도" || s === "전남") { region = "전남"; break; }
     }
     if (!region) return;
-    const value=parseFloat(row.DT); if (isNaN(value)) return;
-    const period=row.PRD_DE||""; if (!period) return;
-    if (!seen[region]) seen[region]=new Set();
+    const value = parseFloat(row.DT);
+    if (isNaN(value)) return;
+    const period = row.PRD_DE || "";
+    if (!period) return;
+    if (!seen[region]) seen[region] = new Set();
     if (seen[region].has(period)) return;
     seen[region].add(period);
-    if (!out[region]) out[region]=[];
-    out[region].push({ period, value, unit:row.UNIT_NM||"" });
+    if (!out[region]) out[region] = [];
+    out[region].push({ period, value, unit: row.UNIT_NM || "" });
   });
-  Object.values(out).forEach(a=>a.sort((x,y)=>y.period.localeCompare(x.period)));
+  Object.values(out).forEach(a => a.sort((x,y) => y.period.localeCompare(x.period)));
   return out;
 }
 
-function yoyPeriod(p,s) {
-  if (s==="M"&&p.length===6) return `${+p.slice(0,4)-1}${p.slice(4)}`;
+function yoyPeriod(p, s) {
+  if (s==="M" && p.length===6) return `${+p.slice(0,4)-1}${p.slice(4)}`;
   if (s==="Y") return String(+p-1);
-  if (s==="Q"&&p.length===5) return `${+p.slice(0,4)-1}${p.slice(4)}`;
+  if (s==="Q" && p.length===5) return `${+p.slice(0,4)-1}${p.slice(4)}`;
   return null;
 }
-function chg(c,p) { return p&&p!==0?(c-p)/Math.abs(p)*100:null; }
+function chg(c,p) { return p && p!==0 ? (c-p)/Math.abs(p)*100 : null; }
 
 function process(ind, rows) {
-  const g=parseRegional(rows); const out={};
-  for (const [r,arr] of Object.entries(g)) {
+  const g = parseRegional(rows);
+  const out = {};
+  for (const [r, arr] of Object.entries(g)) {
     if (!arr.length) continue;
-    const cur=arr[0],prev=arr[1],yp=yoyPeriod(cur.period,ind.prdSe),yo=yp?arr.find(e=>e.period===yp):null;
-    out[r]={ v:cur.value, p:cur.period, u:cur.unit||ind.unit, mom:prev?chg(cur.value,prev.value):null, yoy:yo?chg(cur.value,yo.value):null };
+    const cur=arr[0], prev=arr[1];
+    const yp = yoyPeriod(cur.period, ind.prdSe);
+    const yo = yp ? arr.find(e => e.period===yp) : null;
+    out[r] = {
+      v: cur.value,
+      p: cur.period,
+      u: cur.unit || ind.unit,
+      mom: prev ? chg(cur.value, prev.value) : null,
+      yoy: yo   ? chg(cur.value, yo.value)  : null,
+    };
   }
   return out;
 }
 
 function maxChg(data) {
-  if (!data) return 0; let m=0;
+  if (!data) return 0;
+  let m = 0;
   for (const d of Object.values(data)) {
-    if (d.mom!=null) m=Math.max(m,Math.abs(d.mom));
-    if (d.yoy!=null) m=Math.max(m,Math.abs(d.yoy));
+    if (d.mom != null) m = Math.max(m, Math.abs(d.mom));
+    if (d.yoy != null) m = Math.max(m, Math.abs(d.yoy));
   }
   return m;
 }
 
-function fmtP(p,s) {
+function fmtP(p, s) {
   if (!p) return "";
-  if (s==="M"&&p.length===6) return `${p.slice(0,4)}.${p.slice(4)}`;
+  if (s==="M" && p.length===6) return `${p.slice(0,4)}.${p.slice(4)}`;
   if (s==="Y") return `${p}년`;
-  if (s==="Q"&&p.length===5) return `${p.slice(0,4)}년 Q${p.slice(4)}`;
+  if (s==="Q" && p.length===5) return `${p.slice(0,4)}년 Q${p.slice(4)}`;
   return p;
 }
-function fmtC(v) { if (v==null) return null; return `${v>0?"+":""}${v.toFixed(1)}%`; }
+function fmtC(v) {
+  if (v == null) return null;
+  return `${v>0?"+":""}${v.toFixed(1)}%`;
+}
 
 async function getAngle(item) {
-  if (!item.data||!Object.keys(item.data).length) return "데이터 없음";
-  const lines=Object.entries(item.data).map(([r,d])=>{
-    const cs=[d.mom!=null&&`전월비 ${fmtC(d.mom)}`,d.yoy!=null&&`전년비 ${fmtC(d.yoy)}`].filter(Boolean).join(", ");
+  if (!item.data || !Object.keys(item.data).length) return "데이터 없음";
+  const lines = Object.entries(item.data).map(([r,d]) => {
+    const cs = [
+      d.mom!=null && `전월비 ${fmtC(d.mom)}`,
+      d.yoy!=null && `전년비 ${fmtC(d.yoy)}`
+    ].filter(Boolean).join(", ");
     return `${r}: ${d.v.toLocaleString()} ${d.u} (${cs||"변동없음"})`;
   }).join("\n");
   try {
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000,
-        messages:[{role:"user",content:`광주전남 지역신문 기자 관점에서 다음 통계 변화에 대한 기사 각도 2개를 한 줄씩 제안해주세요.\n\n지표: ${item.name}\n${lines}\n\n형식:\n① [취재 각도]\n② [취재 각도]`}]
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role:"user", content:
+          `광주전남 지역신문 기자 관점에서 다음 통계 변화에 대한 기사 각도 2개를 한 줄씩 제안해주세요.\n\n지표: ${item.name}\n${lines}\n\n형식:\n① [취재 각도]\n② [취재 각도]`
+        }]
       })
     });
-    const d=await res.json();
-    return d.content?.[0]?.text||"생성 실패";
+    const d = await res.json();
+    return d.content?.[0]?.text || "생성 실패";
   } catch { return "생성 실패"; }
 }
 
 function doExport(results) {
-  const wb=XLSX.utils.book_new();
-  const fmt=r=>{
-    const row={분야:r.cat,지표:r.name,tblId:r.tblId||"",상태:r.error?`오류:${r.error}`:Object.keys(r.data||{}).length?"성공":"데이터없음"};
-    for (const [reg,d] of Object.entries(r.data||{})) {
-      row[`${reg}_최신값`]=`${d.v.toLocaleString()} ${d.u}`;
-      row[`${reg}_기준시점`]=fmtP(d.p,r.prdSe);
-      row[`${reg}_전월비`]=fmtC(d.mom)||"-";
-      row[`${reg}_전년비`]=fmtC(d.yoy)||"-";
+  const wb = XLSX.utils.book_new();
+  const fmt = r => {
+    const row = {
+      분야: r.cat, 지표: r.name, tblId: r.tblId,
+      상태: r.error ? `오류:${r.error}` : Object.keys(r.data||{}).length ? "성공" : "데이터없음"
+    };
+    for (const [reg, d] of Object.entries(r.data||{})) {
+      row[`${reg}_최신값`]  = `${d.v.toLocaleString()} ${d.u}`;
+      row[`${reg}_기준시점`] = fmtP(d.p, r.prdSe);
+      row[`${reg}_전월비`]  = fmtC(d.mom) || "-";
+      row[`${reg}_전년비`]  = fmtC(d.yoy) || "-";
     }
-    row["기사각도"]=r.angle||""; return row;
+    row["기사각도"] = r.angle || "";
+    return row;
   };
-  const urgent=results.filter(r=>r.data&&maxChg(r.data)>=r.threshold);
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(urgent.map(fmt)),"급변항목");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(results.map(fmt)),"전체현황");
-  XLSX.writeFile(wb,`광주전남통계레이더_${new Date().toISOString().slice(0,10)}.xlsx`);
+  const urgent = results.filter(r => r.data && maxChg(r.data) >= r.threshold);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(urgent.map(fmt)), "급변항목");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(results.map(fmt)), "전체현황");
+  XLSX.writeFile(wb, `광주전남통계레이더_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function Badge({ value, threshold, label }) {
-  if (value==null) return <span style={{color:"#4b5563",fontSize:10,fontFamily:"monospace"}}>-</span>;
-  const abs=Math.abs(value);
-  const col=abs>=threshold*2?"#ef4444":abs>=threshold?"#f59e0b":"#22c55e";
+  if (value == null) return <span style={{color:"#4b5563",fontSize:10}}>-</span>;
+  const abs = Math.abs(value);
+  const col = abs >= threshold*2 ? "#ef4444" : abs >= threshold ? "#f59e0b" : "#22c55e";
   return (
     <div style={{display:"flex",alignItems:"center",gap:3}}>
       <span style={{fontSize:10,color:"#6b7280"}}>{label}</span>
-      <span style={{background:col+"1a",color:col,border:`1px solid ${col}44`,padding:"1px 5px",borderRadius:3,fontSize:10,fontFamily:"monospace",fontWeight:700}}>{fmtC(value)}</span>
+      <span style={{background:col+"1a",color:col,border:`1px solid ${col}44`,padding:"1px 5px",borderRadius:3,fontSize:10,fontFamily:"monospace",fontWeight:700}}>
+        {fmtC(value)}
+      </span>
     </div>
   );
 }
 
 function Card({ item, onAngle, isLoadingAngle }) {
-  const hasData=item.data&&Object.keys(item.data).length>0;
-  const mc=hasData?maxChg(item.data):0;
-  const isCrit=mc>=item.threshold*2, isWarn=mc>=item.threshold&&!isCrit;
-  const cc=CAT_COLOR[item.cat];
+  const hasData = item.data && Object.keys(item.data).length > 0;
+  const mc = hasData ? maxChg(item.data) : 0;
+  const isCrit = mc >= item.threshold*2;
+  const isWarn = mc >= item.threshold && !isCrit;
+  const cc = CAT_COLOR[item.cat];
   return (
-    <div style={{background:"#161b22",border:`1px solid ${isCrit?"#ef444428":isWarn?"#f59e0b28":"#21262d"}`,borderLeft:`3px solid ${isCrit?"#ef4444":isWarn?"#f59e0b":hasData?"#22c55e":"#374151"}`,borderRadius:8,padding:"11px 13px",marginBottom:6}}>
+    <div style={{
+      background:"#161b22",
+      border:`1px solid ${isCrit?"#ef444428":isWarn?"#f59e0b28":"#21262d"}`,
+      borderLeft:`3px solid ${isCrit?"#ef4444":isWarn?"#f59e0b":hasData?"#22c55e":"#374151"}`,
+      borderRadius:8, padding:"11px 13px", marginBottom:6
+    }}>
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10}}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap",marginBottom:7}}>
             <span style={{fontSize:10,padding:"2px 7px",borderRadius:4,background:cc+"22",color:cc,fontWeight:700,flexShrink:0}}>{item.cat}</span>
             <span style={{fontWeight:600,fontSize:14}}>{item.name}</span>
-            {item.tblId&&<span style={{fontSize:9,color:"#4b5563",fontFamily:"monospace"}}>{item.tblId}</span>}
-            {isCrit&&<span style={{fontSize:10,background:"#ef444418",color:"#ef4444",padding:"1px 6px",borderRadius:4}}>🔴 급변</span>}
-            {isWarn&&<span style={{fontSize:10,background:"#f59e0b18",color:"#f59e0b",padding:"1px 6px",borderRadius:4}}>🟡 주목</span>}
-            {item.error&&<span style={{fontSize:10,color:"#6b7280",background:"#21262d",padding:"1px 6px",borderRadius:4}}>⚠ {item.error}</span>}
+            <span style={{fontSize:9,color:"#4b5563",fontFamily:"monospace"}}>{item.tblId}</span>
+            {isCrit && <span style={{fontSize:10,background:"#ef444418",color:"#ef4444",padding:"1px 6px",borderRadius:4}}>🔴 급변</span>}
+            {isWarn && <span style={{fontSize:10,background:"#f59e0b18",color:"#f59e0b",padding:"1px 6px",borderRadius:4}}>🟡 주목</span>}
+            {item.error && <span style={{fontSize:10,color:"#6b7280",background:"#21262d",padding:"1px 6px",borderRadius:4}}>⚠ {item.error}</span>}
           </div>
-          {hasData&&(
+          {hasData && (
             <div style={{display:"flex",flexWrap:"wrap",gap:"6px 18px"}}>
-              {Object.entries(item.data).map(([r,d])=>(
+              {Object.entries(item.data).map(([r,d]) => (
                 <div key={r} style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
                   <span style={{fontSize:11,fontWeight:700,color:"#9ca3af",background:"#21262d",padding:"1px 6px",borderRadius:4,flexShrink:0}}>{r}</span>
-                  <span style={{fontFamily:"monospace",fontWeight:700,fontSize:15}}>{d.v.toLocaleString()}<span style={{fontSize:11,color:"#6b7280",marginLeft:2}}>{d.u}</span></span>
+                  <span style={{fontFamily:"monospace",fontWeight:700,fontSize:15}}>
+                    {d.v.toLocaleString()}
+                    <span style={{fontSize:11,color:"#6b7280",marginLeft:2}}>{d.u}</span>
+                  </span>
                   <Badge value={d.mom} threshold={item.threshold} label="전월"/>
                   <Badge value={d.yoy} threshold={item.threshold} label="전년"/>
                   <span style={{fontSize:10,color:"#4b5563"}}>{fmtP(d.p,item.prdSe)}</span>
@@ -197,15 +213,15 @@ function Card({ item, onAngle, isLoadingAngle }) {
               ))}
             </div>
           )}
-          {item.angle&&(
+          {item.angle && (
             <div style={{marginTop:9,padding:"9px 11px",background:"#f59e0b0c",border:"1px solid #f59e0b22",borderRadius:6,fontSize:12.5,color:"#fde68a",lineHeight:1.7,whiteSpace:"pre-line"}}>
               ✍️ {item.angle}
             </div>
           )}
         </div>
-        {hasData&&(isCrit||isWarn)&&!item.angle&&(
+        {hasData && (isCrit||isWarn) && !item.angle && (
           <button onClick={()=>onAngle(item.id)} disabled={isLoadingAngle} style={{background:"#21262d",border:"1px solid #30363d",color:isLoadingAngle?"#4b5563":"#f59e0b",padding:"5px 10px",borderRadius:6,cursor:isLoadingAngle?"not-allowed":"pointer",fontSize:12,flexShrink:0}}>
-            {isLoadingAngle?"⏳":"✍️ 각도"}
+            {isLoadingAngle ? "⏳" : "✍️ 각도"}
           </button>
         )}
       </div>
@@ -214,120 +230,110 @@ function Card({ item, onAngle, isLoadingAngle }) {
 }
 
 export default function Home() {
-  const [status, setStatus] = useState("idle");
-  const [progress, setProgress] = useState({ n:0, label:"", step:"" });
+  const [status, setStatus]   = useState("idle");
+  const [progress, setProgress] = useState({ n:0, label:"" });
   const [results, setResults] = useState([]);
-  const [tab, setTab] = useState("urgent");
-  const [cat, setCat] = useState("전체");
+  const [tab, setTab]         = useState("urgent");
+  const [cat, setCat]         = useState("전체");
   const [loadingAngles, setLoadingAngles] = useState(new Set());
 
   const startScan = useCallback(async () => {
     setStatus("scanning"); setResults([]);
-    const all=[];
-    for (let i=0;i<INDICATORS.length;i++) {
-      const ind=INDICATORS[i];
-
-      // STEP 1: tblId 자동 탐색
-      setProgress({ n:i+1, label:ind.name, step:"🔍 tblId 탐색 중..." });
-      const found = await findTblId(ind);
-
-      if (!found) {
-        all.push({ ...ind, data:{}, tblId:null, error:"tblId 탐색 실패", angle:null });
-        setResults([...all]);
-        continue;
-      }
-
-      // STEP 2: 데이터 수집
-      setProgress({ n:i+1, label:ind.name, step:"📡 데이터 수집 중..." });
-      const { ok, data, error } = await fetchKosis(ind, found.orgId, found.tblId);
-      const processed = ok&&data.length ? process(ind,data) : {};
-      all.push({ ...ind, data:processed, tblId:found.tblId, orgId:found.orgId, error:ok?null:error, angle:null });
+    const all = [];
+    for (let i=0; i<INDICATORS.length; i++) {
+      const ind = INDICATORS[i];
+      setProgress({ n:i+1, label:ind.name });
+      const { ok, data, error } = await fetchKosis(ind);
+      const processed = ok && data.length ? process(ind, data) : {};
+      all.push({ ...ind, data:processed, error:ok?null:error, angle:null });
       setResults([...all]);
-      await new Promise(r=>setTimeout(r,400));
+      await new Promise(r => setTimeout(r, 400));
     }
     setStatus("done");
   }, []);
 
   const requestAngle = useCallback(async (id) => {
-    const item=results.find(r=>r.id===id);
-    if (!item||loadingAngles.has(id)) return;
-    setLoadingAngles(p=>new Set([...p,id]));
-    const angle=await getAngle(item);
-    setResults(p=>p.map(r=>r.id===id?{...r,angle}:r));
-    setLoadingAngles(p=>{ const n=new Set(p); n.delete(id); return n; });
+    const item = results.find(r => r.id===id);
+    if (!item || loadingAngles.has(id)) return;
+    setLoadingAngles(p => new Set([...p, id]));
+    const angle = await getAngle(item);
+    setResults(p => p.map(r => r.id===id ? {...r,angle} : r));
+    setLoadingAngles(p => { const n=new Set(p); n.delete(id); return n; });
   }, [results, loadingAngles]);
 
-  const filtered=cat==="전체"?results:results.filter(r=>r.cat===cat);
-  const urgent=filtered.filter(r=>r.data&&maxChg(r.data)>=r.threshold).sort((a,b)=>maxChg(b.data)-maxChg(a.data));
-  const successCount=results.filter(r=>r.data&&Object.keys(r.data).length>0).length;
-  const errorCount=results.filter(r=>r.error).length;
-  const pct=results.length?Math.round(results.length/24*100):0;
+  const filtered = cat==="전체" ? results : results.filter(r => r.cat===cat);
+  const urgent   = filtered.filter(r => r.data && maxChg(r.data)>=r.threshold).sort((a,b)=>maxChg(b.data)-maxChg(a.data));
+  const successCount = results.filter(r => r.data && Object.keys(r.data).length>0).length;
+  const errorCount   = results.filter(r => r.error).length;
+  const pct = results.length ? Math.round(results.length/INDICATORS.length*100) : 0;
 
   return (
     <div style={{minHeight:"100vh",background:"#0d1117",color:"#e6edf3",fontFamily:"'Apple SD Gothic Neo','Noto Sans KR',sans-serif"}}>
       <style>{`*{box-sizing:border-box;margin:0;padding:0;}body{background:#0d1117;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#161b22;}::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px;}button:focus{outline:none;}`}</style>
 
+      {/* 헤더 */}
       <div style={{background:"#161b22",borderBottom:"1px solid #21262d",padding:"13px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:11}}>
           <div style={{width:38,height:38,borderRadius:10,background:"linear-gradient(135deg,#f59e0b,#ef4444)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📡</div>
           <div>
             <div style={{fontWeight:700,fontSize:15}}>광주전남 통계 레이더</div>
             <div style={{fontSize:11,color:"#6b7280",marginTop:1}}>
-              {status==="idle"&&"KOSIS 자동 탐색 · 24개 지표"}
-              {status==="scanning"&&`(${results.length}/24) ${progress.label} — ${progress.step}`}
-              {status==="done"&&`완료 · 성공 ${successCount}개 · 오류 ${errorCount}개`}
+              {status==="idle"     && `KOSIS · ${INDICATORS.length}개 지표`}
+              {status==="scanning" && `스캔 중 (${results.length}/${INDICATORS.length}) — ${progress.label}`}
+              {status==="done"     && `완료 · 성공 ${successCount}개 · 오류 ${errorCount}개`}
             </div>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          {status==="done"&&(
-            <button onClick={()=>doExport(results)} style={{background:"#21262d",border:"1px solid #30363d",color:"#e6edf3",padding:"7px 14px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:500}}>📥 엑셀 저장</button>
+          {status==="done" && (
+            <button onClick={()=>doExport(results)} style={{background:"#21262d",border:"1px solid #30363d",color:"#e6edf3",padding:"7px 14px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:500}}>
+              📥 엑셀 저장
+            </button>
           )}
           <button onClick={startScan} disabled={status==="scanning"} style={{background:status==="scanning"?"#21262d":"linear-gradient(135deg,#f59e0b,#f97316)",border:"none",color:status==="scanning"?"#6b7280":"#000",padding:"7px 18px",borderRadius:7,cursor:status==="scanning"?"not-allowed":"pointer",fontWeight:700,fontSize:13}}>
-            {status==="scanning"?"⏳ 스캔 중...":"🔍 스캔 시작"}
+            {status==="scanning" ? "⏳ 스캔 중..." : "🔍 스캔 시작"}
           </button>
         </div>
       </div>
 
+      {/* 진행바 */}
       <div style={{height:3,background:"#21262d"}}>
         <div style={{height:"100%",width:status==="done"?"100%":`${pct}%`,background:"linear-gradient(90deg,#f59e0b,#ef4444)",transition:"width 0.4s ease"}}/>
       </div>
 
       <div style={{maxWidth:880,margin:"0 auto",padding:"20px 16px 60px"}}>
-        {status==="idle"&&(
+        {/* 시작 화면 */}
+        {status==="idle" && (
           <div style={{textAlign:"center",padding:"70px 16px"}}>
             <div style={{fontSize:52,marginBottom:18}}>📡</div>
             <div style={{fontSize:22,fontWeight:700,marginBottom:10}}>광주·전남 통계 변화 레이더</div>
             <div style={{color:"#8b949e",fontSize:14,lineHeight:1.8,marginBottom:32}}>
-              KOSIS에서 tblId를 자동 탐색 후 24개 지표를 수집합니다.<br/>
+              확인된 KOSIS 지표 {INDICATORS.length}개를 자동 수집합니다.<br/>
               전월비·전년비 분석 + AI 기사 각도 제안 + 엑셀 저장
             </div>
-            <div style={{display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap",marginBottom:32}}>
-              {Object.entries(CAT_COLOR).map(([c,col])=>(
-                <div key={c} style={{background:col+"1a",border:`1px solid ${col}33`,padding:"5px 14px",borderRadius:20,fontSize:13,color:col,fontWeight:500}}>{c}</div>
+            <div style={{background:"#161b22",border:"1px solid #21262d",borderRadius:10,padding:"16px 20px",maxWidth:420,margin:"0 auto",textAlign:"left",fontSize:12.5,color:"#8b949e",lineHeight:1.9}}>
+              <div style={{fontWeight:600,color:"#e6edf3",marginBottom:6}}>📌 수록 지표</div>
+              {INDICATORS.map(ind => (
+                <div key={ind.id} style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <span style={{color:CAT_COLOR[ind.cat],fontSize:10,minWidth:60}}>{ind.cat}</span>
+                  <span>{ind.name}</span>
+                </div>
               ))}
-            </div>
-            <div style={{background:"#161b22",border:"1px solid #21262d",borderRadius:10,padding:"16px 20px",maxWidth:460,margin:"0 auto",textAlign:"left",fontSize:12.5,color:"#8b949e",lineHeight:1.9}}>
-              <div style={{fontWeight:600,color:"#e6edf3",marginBottom:6}}>📌 사용 방법</div>
-              <div>① <b style={{color:"#f59e0b"}}>스캔 시작</b> 버튼 클릭</div>
-              <div>② tblId 자동 탐색 → 데이터 수집 (약 3~5분)</div>
-              <div>③ 급변 알림 탭에서 기사 아이템 확인</div>
-              <div>④ <b style={{color:"#f59e0b"}}>✍️ 각도</b> 버튼으로 AI 취재 방향 제안</div>
-              <div>⑤ <b style={{color:"#f59e0b"}}>📥 엑셀 저장</b>으로 결과 보관</div>
             </div>
           </div>
         )}
 
-        {results.length>0&&(
+        {/* 결과 */}
+        {results.length > 0 && (
           <>
             <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
               {[
-                {label:"스캔",v:results.length,col:"#8b949e"},
-                {label:"데이터 확보",v:successCount,col:"#22c55e"},
-                {label:"급변",v:results.filter(r=>r.data&&maxChg(r.data)>=r.threshold*2).length,col:"#ef4444"},
-                {label:"주목",v:results.filter(r=>{const m=maxChg(r.data||{});return m>=r.threshold&&m<r.threshold*2;}).length,col:"#f59e0b"},
-                {label:"오류",v:errorCount,col:"#6b7280"},
-              ].map(s=>(
+                {label:"스캔",      v:results.length,  col:"#8b949e"},
+                {label:"데이터 확보",v:successCount,    col:"#22c55e"},
+                {label:"급변",      v:results.filter(r=>r.data&&maxChg(r.data)>=r.threshold*2).length, col:"#ef4444"},
+                {label:"주목",      v:results.filter(r=>{const m=maxChg(r.data||{});return m>=r.threshold&&m<r.threshold*2;}).length, col:"#f59e0b"},
+                {label:"오류",      v:errorCount,       col:"#6b7280"},
+              ].map(s => (
                 <div key={s.label} style={{background:"#161b22",border:"1px solid #21262d",borderRadius:8,padding:"7px 13px",display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontFamily:"monospace",fontWeight:700,fontSize:18,color:s.col}}>{s.v}</span>
                   <span style={{fontSize:12,color:"#6b7280"}}>{s.label}</span>
@@ -336,33 +342,33 @@ export default function Home() {
             </div>
 
             <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
-              {CATS.map(c=>{
-                const active=cat===c;
-                const col=c==="전체"?"#f59e0b":CAT_COLOR[c];
+              {CATS.map(c => {
+                const active = cat===c;
+                const col = c==="전체" ? "#f59e0b" : CAT_COLOR[c];
                 return <button key={c} onClick={()=>setCat(c)} style={{background:active?col+"22":"transparent",border:`1px solid ${active?col:"#30363d"}`,color:active?col:"#6b7280",padding:"5px 13px",borderRadius:20,cursor:"pointer",fontSize:12.5,fontWeight:active?600:400}}>{c}</button>;
               })}
             </div>
 
             <div style={{display:"flex",borderBottom:"1px solid #21262d",marginBottom:12}}>
-              {[["urgent",`🔴 급변 알림 (${urgent.length})`],["all",`📊 전체 현황 (${filtered.length})`]].map(([key,label])=>(
+              {[["urgent",`🔴 급변 알림 (${urgent.length})`],["all",`📊 전체 현황 (${filtered.length})`]].map(([key,label]) => (
                 <button key={key} onClick={()=>setTab(key)} style={{background:"transparent",border:"none",borderBottom:tab===key?"2px solid #f59e0b":"2px solid transparent",color:tab===key?"#f59e0b":"#6b7280",padding:"9px 18px",cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:-1}}>{label}</button>
               ))}
             </div>
 
             <div>
-              {(tab==="urgent"?urgent:filtered).map(item=>(
+              {(tab==="urgent" ? urgent : filtered).map(item => (
                 <Card key={item.id} item={item} onAngle={requestAngle} isLoadingAngle={loadingAngles.has(item.id)}/>
               ))}
-              {tab==="urgent"&&urgent.length===0&&(
+              {tab==="urgent" && urgent.length===0 && (
                 <div style={{textAlign:"center",padding:"48px 0",color:"#6b7280"}}>
-                  {status==="scanning"?"⏳ 데이터 수집 중입니다...":"급변 항목이 없습니다. 전체 현황 탭을 확인해보세요."}
+                  {status==="scanning" ? "⏳ 수집 중..." : "급변 항목 없음. 전체 현황 탭을 확인하세요."}
                 </div>
               )}
             </div>
           </>
         )}
 
-        {status==="done"&&(
+        {status==="done" && (
           <div style={{marginTop:28,padding:"10px 14px",background:"#161b22",border:"1px solid #21262d",borderRadius:8,fontSize:11.5,color:"#6b7280"}}>
             🔒 API 키는 서버에서만 사용됩니다 · 출처: KOSIS 국가통계포털
           </div>
@@ -371,3 +377,12 @@ export default function Home() {
     </div>
   );
 }
+```
+
+---
+
+## 이번에 바꾼 핵심 3가지
+```
+1. 확인된 tblId 10개만 사용 → 오류 최소화
+2. 기간(s,e)을 지표별로 정확하게 지정
+3. 지역명 비교를 정확하게 ("광주광역시" 완전 일치)
