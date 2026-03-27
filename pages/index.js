@@ -1,49 +1,64 @@
 import { useState, useCallback } from "react";
 import * as XLSX from "xlsx";
 
+// 지표명만 정의 — tblId는 스캔 시 자동 탐색
 const INDICATORS = [
-  
-  { id:1, cat:"사회·복지", name:"청년실업률", orgId:"101", tblId:"DT_1YL20531E", prdSe:"Q", unit:"%", threshold:1 },
-  { id:2,  cat:"사회·복지",  name:"기초생활수급자", orgId:"117", tblId:"DT_117N_A00301",     prdSe:"Y", unit:"명",    threshold:5  },
-  { id:3,  cat:"사회·복지",  name:"노인 독거가구",  orgId:"101", tblId:"DT_1IN1503",         prdSe:"Y", unit:"가구",  threshold:5  },
-  { id:4,  cat:"사회·복지",  name:"장애인 등록",    orgId:"117", tblId:"DT_117N_A00124",     prdSe:"Y", unit:"명",    threshold:3  },
-  { id:5, cat:"사회·복지", name:"출생아 수", orgId:"101", tblId:"INH_1B81A01", prdSe:"M", unit:"명", threshold:5 },
-  { id:6,  cat:"사회·복지",  name:"합계출산율",     orgId:"101", tblId:"DT_1B8000G",         prdSe:"Y", unit:"명",    threshold:3  },
-  { id:7,  cat:"사회·복지",  name:"사망자 수",      orgId:"101", tblId:"DT_1B8000E",         prdSe:"Y", unit:"명",    threshold:3  },
-  { id:8,  cat:"사회·복지",  name:"어린이집 수",    orgId:"117", tblId:"DT_117N_A00208",     prdSe:"Y", unit:"개소",  threshold:5  },
-  { id:9,  cat:"사회·복지",  name:"아동학대 신고",  orgId:"117", tblId:"DT_117N_A00503",     prdSe:"Y", unit:"건",    threshold:5  },
-  { id:10, cat:"사회·복지",  name:"한부모가족",     orgId:"117", tblId:"DT_117N_A00601",     prdSe:"Y", unit:"가구",  threshold:5  },
-  { id:11, cat:"경제·고용", name:"고용률", orgId:"101", tblId:"DT_1DA7004S", prdSe:"M", unit:"%", threshold:1 },
-  { id:12, cat:"경제·고용", name:"실업률", orgId:"101", tblId:"DT_1DA7004S", prdSe:"M", unit:"%", threshold:1 },
-  { id:13, cat:"경제·고용", name:"소비자물가지수", orgId:"101", tblId:"INH_1J22003", prdSe:"M", unit:"지수", threshold:2 },
-  { id:14, cat:"경제·고용",  name:"제조업 취업자",  orgId:"101", tblId:"DT_1DA7002S",        prdSe:"M", unit:"천명",  threshold:3  },
-  { id:15, cat:"경제·고용",  name:"평균 임금",      orgId:"118", tblId:"DT_OAA108",          prdSe:"M", unit:"원",    threshold:3  },
-  { id:16, cat:"경제·고용",  name:"농가소득",       orgId:"101", tblId:"DT_1EB002",          prdSe:"Y", unit:"만원",  threshold:5  },
-  { id:17, cat:"경제·고용",  name:"외국인 근로자",  orgId:"118", tblId:"DT_OAD006",          prdSe:"M", unit:"명",    threshold:5  },
-  { id:18, cat:"부동산·인구", name:"아파트 매매가", orgId:"101", tblId:"DT_1YL20162E", prdSe:"M", unit:"지수", threshold:2 },
-  { id:19, cat:"부동산·인구",name:"전세가격지수",   orgId:"116", tblId:"DT_MLTM_3035",       prdSe:"M", unit:"지수",  threshold:2  },
-  { id:20, cat:"부동산·인구",name:"인구 이동",      orgId:"101", tblId:"DT_1B26001",         prdSe:"M", unit:"명",    threshold:5  },
-  { id:21, cat:"부동산·인구",name:"미분양 주택",    orgId:"116", tblId:"DT_MLTM_2086",       prdSe:"M", unit:"호",    threshold:10 },
-  { id:22, cat:"부동산·인구",name:"주민등록인구",   orgId:"101", tblId:"DT_1B040A3",         prdSe:"M", unit:"명",    threshold:3  },
-  { id:23, cat:"교육·환경",  name:"학생 수",        orgId:"334", tblId:"DT_334005_2010",     prdSe:"Y", unit:"명",    threshold:3  },
-  { id:24, cat:"교육·환경",  name:"교통사고",       orgId:"132", tblId:"DT_13204_111",       prdSe:"Y", unit:"건",    threshold:5  },
+  { id:1,  cat:"사회·복지",  name:"청년실업률",       searchNm:"청년 실업률 시도",       prdSe:"Q", unit:"%",     threshold:1  },
+  { id:2,  cat:"사회·복지",  name:"기초생활수급자",    searchNm:"기초생활수급자 시도",     prdSe:"Y", unit:"명",    threshold:5  },
+  { id:3,  cat:"사회·복지",  name:"노인 독거가구",     searchNm:"독거노인 가구 시도",      prdSe:"Y", unit:"가구",  threshold:5  },
+  { id:4,  cat:"사회·복지",  name:"장애인 등록",       searchNm:"장애인 등록 시도",        prdSe:"Y", unit:"명",    threshold:3  },
+  { id:5,  cat:"사회·복지",  name:"출생아 수",         searchNm:"출생아수 시도",           prdSe:"M", unit:"명",    threshold:5  },
+  { id:6,  cat:"사회·복지",  name:"합계출산율",        searchNm:"합계출산율 시도",         prdSe:"Y", unit:"명",    threshold:3  },
+  { id:7,  cat:"사회·복지",  name:"사망자 수",         searchNm:"사망자수 시도",           prdSe:"Y", unit:"명",    threshold:3  },
+  { id:8,  cat:"사회·복지",  name:"어린이집 수",       searchNm:"어린이집 시도",           prdSe:"Y", unit:"개소",  threshold:5  },
+  { id:9,  cat:"사회·복지",  name:"아동학대 신고",     searchNm:"아동학대 신고 시도",      prdSe:"Y", unit:"건",    threshold:5  },
+  { id:10, cat:"사회·복지",  name:"한부모가족",        searchNm:"한부모가족 시도",         prdSe:"Y", unit:"가구",  threshold:5  },
+  { id:11, cat:"경제·고용",  name:"고용률",            searchNm:"행정구역 시도별 경제활동인구", prdSe:"M", unit:"%", threshold:1  },
+  { id:12, cat:"경제·고용",  name:"실업률",            searchNm:"행정구역 시도별 경제활동인구", prdSe:"M", unit:"%", threshold:1  },
+  { id:13, cat:"경제·고용",  name:"소비자물가지수",    searchNm:"소비자물가지수 시도",     prdSe:"M", unit:"지수",  threshold:2  },
+  { id:14, cat:"경제·고용",  name:"제조업 취업자",     searchNm:"제조업 취업자 시도",      prdSe:"M", unit:"천명",  threshold:3  },
+  { id:15, cat:"경제·고용",  name:"평균 임금",         searchNm:"시도별 임금 근로자",      prdSe:"M", unit:"원",    threshold:3  },
+  { id:16, cat:"경제·고용",  name:"농가소득",          searchNm:"농가소득 시도",           prdSe:"Y", unit:"만원",  threshold:5  },
+  { id:17, cat:"경제·고용",  name:"외국인 근로자",     searchNm:"외국인 근로자 시도",      prdSe:"M", unit:"명",    threshold:5  },
+  { id:18, cat:"부동산·인구",name:"아파트 매매가",     searchNm:"아파트 매매가격지수 시도",prdSe:"M", unit:"지수",  threshold:2  },
+  { id:19, cat:"부동산·인구",name:"전세가격지수",      searchNm:"아파트 전세가격지수 시도",prdSe:"M", unit:"지수",  threshold:2  },
+  { id:20, cat:"부동산·인구",name:"인구 이동",         searchNm:"인구이동 시도",           prdSe:"M", unit:"명",    threshold:5  },
+  { id:21, cat:"부동산·인구",name:"미분양 주택",       searchNm:"미분양주택 시도",         prdSe:"M", unit:"호",    threshold:10 },
+  { id:22, cat:"부동산·인구",name:"주민등록인구",      searchNm:"주민등록인구 시도",       prdSe:"M", unit:"명",    threshold:3  },
+  { id:23, cat:"교육·환경",  name:"학생 수",           searchNm:"학생수 시도",             prdSe:"Y", unit:"명",    threshold:3  },
+  { id:24, cat:"교육·환경",  name:"교통사고",          searchNm:"교통사고 시도",           prdSe:"Y", unit:"건",    threshold:5  },
 ];
 
 const CAT_COLOR = { "사회·복지":"#60a5fa","경제·고용":"#fbbf24","부동산·인구":"#f472b6","교육·환경":"#34d399" };
 const CATS = ["전체", ...Object.keys(CAT_COLOR)];
 
-async function fetchKosis(ind) {
-  const { orgId, tblId, prdSe } = ind;
+// ── KOSIS 검색으로 tblId 자동 탐색 ───────────────────────
+async function findTblId(ind) {
+  try {
+    const r = await fetch(`/api/kosis?mode=search&searchNm=${encodeURIComponent(ind.searchNm)}`);
+    const data = await r.json();
+    if (!Array.isArray(data) || !data.length) return null;
+    // 시도 지역별 데이터 우선 선택
+    const preferred = data.find(d =>
+      d.VW_CD === "MT_GTITLE01" || d.VW_CD === "MT_GTITLE02"
+    ) || data.find(d =>
+      d.TBL_NM?.includes("시도") || d.TBL_NM?.includes("광역")
+    ) || data[0];
+    return { orgId: preferred.ORG_ID, tblId: preferred.TBL_ID };
+  } catch { return null; }
+}
+
+// ── 데이터 수집 ──────────────────────────────────────────
+async function fetchKosis(ind, orgId, tblId) {
+  const { prdSe } = ind;
   const [s, e] = prdSe==="M" ? ["202401","202602"] : prdSe==="Y" ? ["2022","2025"] : ["20231","20254"];
   try {
-    const res = await fetch(`/api/kosis?orgId=${orgId}&tblId=${tblId}&prdSe=${prdSe}&startPrdDe=${s}&endPrdDe=${e}`);
-    const data = await res.json();
-    if (!Array.isArray(data)) return { ok:false, error: data?.errMsg||data?.error||"API 오류" };
-    if (data[0]?.ERR_MSG) return { ok:false, error:data[0].ERR_MSG };
+    const r = await fetch(`/api/kosis?orgId=${orgId}&tblId=${tblId}&prdSe=${prdSe}&startPrdDe=${s}&endPrdDe=${e}`);
+    const data = await r.json();
+    if (!Array.isArray(data)) return { ok:false, error: data?.errMsg||"API 오류" };
+    if (data[0]?.ERR_MSG) return { ok:false, error: data[0].ERR_MSG };
     return { ok:true, data };
-  } catch(e) {
-    return { ok:false, error:"연결 실패" };
-  }
+  } catch { return { ok:false, error:"연결 실패" }; }
 }
 
 function parseRegional(rows) {
@@ -68,7 +83,7 @@ function parseRegional(rows) {
   return out;
 }
 
-function yoyPeriod(p, s) {
+function yoyPeriod(p,s) {
   if (s==="M"&&p.length===6) return `${+p.slice(0,4)-1}${p.slice(4)}`;
   if (s==="Y") return String(+p-1);
   if (s==="Q"&&p.length===5) return `${+p.slice(0,4)-1}${p.slice(4)}`;
@@ -125,7 +140,7 @@ async function getAngle(item) {
 function doExport(results) {
   const wb=XLSX.utils.book_new();
   const fmt=r=>{
-    const row={분야:r.cat,지표:r.name,상태:r.error?`오류:${r.error}`:Object.keys(r.data||{}).length?"성공":"데이터없음"};
+    const row={분야:r.cat,지표:r.name,tblId:r.tblId||"",상태:r.error?`오류:${r.error}`:Object.keys(r.data||{}).length?"성공":"데이터없음"};
     for (const [reg,d] of Object.entries(r.data||{})) {
       row[`${reg}_최신값`]=`${d.v.toLocaleString()} ${d.u}`;
       row[`${reg}_기준시점`]=fmtP(d.p,r.prdSe);
@@ -164,6 +179,7 @@ function Card({ item, onAngle, isLoadingAngle }) {
           <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap",marginBottom:7}}>
             <span style={{fontSize:10,padding:"2px 7px",borderRadius:4,background:cc+"22",color:cc,fontWeight:700,flexShrink:0}}>{item.cat}</span>
             <span style={{fontWeight:600,fontSize:14}}>{item.name}</span>
+            {item.tblId&&<span style={{fontSize:9,color:"#4b5563",fontFamily:"monospace"}}>{item.tblId}</span>}
             {isCrit&&<span style={{fontSize:10,background:"#ef444418",color:"#ef4444",padding:"1px 6px",borderRadius:4}}>🔴 급변</span>}
             {isWarn&&<span style={{fontSize:10,background:"#f59e0b18",color:"#f59e0b",padding:"1px 6px",borderRadius:4}}>🟡 주목</span>}
             {item.error&&<span style={{fontSize:10,color:"#6b7280",background:"#21262d",padding:"1px 6px",borderRadius:4}}>⚠ {item.error}</span>}
@@ -199,7 +215,7 @@ function Card({ item, onAngle, isLoadingAngle }) {
 
 export default function Home() {
   const [status, setStatus] = useState("idle");
-  const [progress, setProgress] = useState({ n:0, label:"" });
+  const [progress, setProgress] = useState({ n:0, label:"", step:"" });
   const [results, setResults] = useState([]);
   const [tab, setTab] = useState("urgent");
   const [cat, setCat] = useState("전체");
@@ -210,12 +226,24 @@ export default function Home() {
     const all=[];
     for (let i=0;i<INDICATORS.length;i++) {
       const ind=INDICATORS[i];
-      setProgress({ n:i+1, label:ind.name });
-      const { ok, data, error }=await fetchKosis(ind);
-      const processed=ok&&data.length?process(ind,data):{};
-      all.push({ ...ind, data:processed, error:ok?null:error, angle:null });
+
+      // STEP 1: tblId 자동 탐색
+      setProgress({ n:i+1, label:ind.name, step:"🔍 tblId 탐색 중..." });
+      const found = await findTblId(ind);
+
+      if (!found) {
+        all.push({ ...ind, data:{}, tblId:null, error:"tblId 탐색 실패", angle:null });
+        setResults([...all]);
+        continue;
+      }
+
+      // STEP 2: 데이터 수집
+      setProgress({ n:i+1, label:ind.name, step:"📡 데이터 수집 중..." });
+      const { ok, data, error } = await fetchKosis(ind, found.orgId, found.tblId);
+      const processed = ok&&data.length ? process(ind,data) : {};
+      all.push({ ...ind, data:processed, tblId:found.tblId, orgId:found.orgId, error:ok?null:error, angle:null });
       setResults([...all]);
-      await new Promise(r=>setTimeout(r,300));
+      await new Promise(r=>setTimeout(r,400));
     }
     setStatus("done");
   }, []);
@@ -233,18 +261,11 @@ export default function Home() {
   const urgent=filtered.filter(r=>r.data&&maxChg(r.data)>=r.threshold).sort((a,b)=>maxChg(b.data)-maxChg(a.data));
   const successCount=results.filter(r=>r.data&&Object.keys(r.data).length>0).length;
   const errorCount=results.filter(r=>r.error).length;
-  const pct=results.length?Math.round(results.length/30*100):0;
+  const pct=results.length?Math.round(results.length/24*100):0;
 
   return (
     <div style={{minHeight:"100vh",background:"#0d1117",color:"#e6edf3",fontFamily:"'Apple SD Gothic Neo','Noto Sans KR',sans-serif"}}>
-      <style>{`
-        *{box-sizing:border-box;margin:0;padding:0;}
-        body{background:#0d1117;}
-        ::-webkit-scrollbar{width:5px;}
-        ::-webkit-scrollbar-track{background:#161b22;}
-        ::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px;}
-        button:focus{outline:none;}
-      `}</style>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0;}body{background:#0d1117;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#161b22;}::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px;}button:focus{outline:none;}`}</style>
 
       <div style={{background:"#161b22",borderBottom:"1px solid #21262d",padding:"13px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:11}}>
@@ -252,17 +273,15 @@ export default function Home() {
           <div>
             <div style={{fontWeight:700,fontSize:15}}>광주전남 통계 레이더</div>
             <div style={{fontSize:11,color:"#6b7280",marginTop:1}}>
-              {status==="idle"&&"KOSIS Open API · 30개 지표"}
-              {status==="scanning"&&`스캔 중 (${results.length}/30) — ${progress.label}`}
+              {status==="idle"&&"KOSIS 자동 탐색 · 24개 지표"}
+              {status==="scanning"&&`(${results.length}/24) ${progress.label} — ${progress.step}`}
               {status==="done"&&`완료 · 성공 ${successCount}개 · 오류 ${errorCount}개`}
             </div>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
           {status==="done"&&(
-            <button onClick={()=>doExport(results)} style={{background:"#21262d",border:"1px solid #30363d",color:"#e6edf3",padding:"7px 14px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:500}}>
-              📥 엑셀 저장
-            </button>
+            <button onClick={()=>doExport(results)} style={{background:"#21262d",border:"1px solid #30363d",color:"#e6edf3",padding:"7px 14px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:500}}>📥 엑셀 저장</button>
           )}
           <button onClick={startScan} disabled={status==="scanning"} style={{background:status==="scanning"?"#21262d":"linear-gradient(135deg,#f59e0b,#f97316)",border:"none",color:status==="scanning"?"#6b7280":"#000",padding:"7px 18px",borderRadius:7,cursor:status==="scanning"?"not-allowed":"pointer",fontWeight:700,fontSize:13}}>
             {status==="scanning"?"⏳ 스캔 중...":"🔍 스캔 시작"}
@@ -280,18 +299,18 @@ export default function Home() {
             <div style={{fontSize:52,marginBottom:18}}>📡</div>
             <div style={{fontSize:22,fontWeight:700,marginBottom:10}}>광주·전남 통계 변화 레이더</div>
             <div style={{color:"#8b949e",fontSize:14,lineHeight:1.8,marginBottom:32}}>
-              KOSIS 30개 지표를 자동 수집해 유의미한 변화를 찾아드립니다.<br/>
-              전월비·전년비 동시 분석 + AI 기사 각도 제안 + 엑셀 저장
+              KOSIS에서 tblId를 자동 탐색 후 24개 지표를 수집합니다.<br/>
+              전월비·전년비 분석 + AI 기사 각도 제안 + 엑셀 저장
             </div>
             <div style={{display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap",marginBottom:32}}>
               {Object.entries(CAT_COLOR).map(([c,col])=>(
                 <div key={c} style={{background:col+"1a",border:`1px solid ${col}33`,padding:"5px 14px",borderRadius:20,fontSize:13,color:col,fontWeight:500}}>{c}</div>
               ))}
             </div>
-            <div style={{background:"#161b22",border:"1px solid #21262d",borderRadius:10,padding:"16px 20px",maxWidth:440,margin:"0 auto",textAlign:"left",fontSize:12.5,color:"#8b949e",lineHeight:1.9}}>
+            <div style={{background:"#161b22",border:"1px solid #21262d",borderRadius:10,padding:"16px 20px",maxWidth:460,margin:"0 auto",textAlign:"left",fontSize:12.5,color:"#8b949e",lineHeight:1.9}}>
               <div style={{fontWeight:600,color:"#e6edf3",marginBottom:6}}>📌 사용 방법</div>
-              <div>① 상단 <b style={{color:"#f59e0b"}}>스캔 시작</b> 버튼 클릭</div>
-              <div>② 30개 지표 자동 수집 (약 2~3분 소요)</div>
+              <div>① <b style={{color:"#f59e0b"}}>스캔 시작</b> 버튼 클릭</div>
+              <div>② tblId 자동 탐색 → 데이터 수집 (약 3~5분)</div>
               <div>③ 급변 알림 탭에서 기사 아이템 확인</div>
               <div>④ <b style={{color:"#f59e0b"}}>✍️ 각도</b> 버튼으로 AI 취재 방향 제안</div>
               <div>⑤ <b style={{color:"#f59e0b"}}>📥 엑셀 저장</b>으로 결과 보관</div>
@@ -344,7 +363,7 @@ export default function Home() {
         )}
 
         {status==="done"&&(
-          <div style={{marginTop:28,padding:"10px 14px",background:"#161b22",border:"1px solid #21262d",borderRadius:8,fontSize:11.5,color:"#6b7280",lineHeight:1.7}}>
+          <div style={{marginTop:28,padding:"10px 14px",background:"#161b22",border:"1px solid #21262d",borderRadius:8,fontSize:11.5,color:"#6b7280"}}>
             🔒 API 키는 서버에서만 사용됩니다 · 출처: KOSIS 국가통계포털
           </div>
         )}
